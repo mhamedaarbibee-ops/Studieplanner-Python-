@@ -1,12 +1,15 @@
-from storage import tasks
+from storage import tasks, save_tasks
 
 
 def add_task():
     name = input("Voer taaknaam in: ").strip()
-    deadline = input("Voer deadline in: ").strip()
+    deadline = input("Voer deadline in (bijv. 10-10-2026): ").strip()
 
     if not name:
         print("Taaknaam mag niet leeg zijn.")
+        return
+    if not deadline:
+        print("Deadline mag niet leeg zijn.")
         return
 
     task = {
@@ -16,6 +19,7 @@ def add_task():
     }
 
     tasks.append(task)
+    save_tasks(tasks)
     print("Taak toegevoegd.")
 
 
@@ -24,9 +28,12 @@ def view_tasks():
         print("Geen taken gevonden.")
         return
 
+    # Sorteer op deadline (eenvoudig, alfabetisch)
+    sorted_tasks = sorted(tasks, key=lambda t: t["deadline"])
+
     print("\n--- Takenlijst ---")
-    for index, task in enumerate(tasks, start=1):
-        status = "Voltooid" if task["completed"] else "Open"
+    for index, task in enumerate(sorted_tasks, start=1):
+        status = "✅ Voltooid" if task["completed"] else "⏳ Open"
         print(f"{index}. {task['name']} | Deadline: {task['deadline']} | {status}")
 
 
@@ -39,8 +46,14 @@ def complete_task():
     try:
         task_number = int(input("Welke taak is voltooid? ")) - 1
 
-        if 0 <= task_number < len(tasks):
-            tasks[task_number]["completed"] = True
+        # Omdat we sorteren, moeten we de echte taak terugvinden
+        sorted_tasks = sorted(tasks, key=lambda t: t["deadline"])
+        
+        if 0 <= task_number < len(sorted_tasks):
+            # Zoek de echte taak in de originele lijst
+            selected = sorted_tasks[task_number]
+            selected["completed"] = True
+            save_tasks(tasks)
             print("Taak gemarkeerd als voltooid.")
         else:
             print("Ongeldig taaknummer.")
@@ -58,9 +71,13 @@ def delete_task():
     try:
         task_number = int(input("Welke taak wil je verwijderen? ")) - 1
 
-        if 0 <= task_number < len(tasks):
-            removed = tasks.pop(task_number)
-            print(f"'{removed['name']}' verwijderd.")
+        sorted_tasks = sorted(tasks, key=lambda t: t["deadline"])
+
+        if 0 <= task_number < len(sorted_tasks):
+            selected = sorted_tasks[task_number]
+            tasks.remove(selected)          # verwijder de echte taak
+            save_tasks(tasks)
+            print(f"'{selected['name']}' verwijderd.")
         else:
             print("Ongeldig taaknummer.")
 
@@ -74,6 +91,6 @@ def show_statistics():
     open_tasks = total - completed
 
     print("\n--- Overzicht ---")
-    print(f"Totaal aantal taken: {total}")
-    print(f"Openstaande taken: {open_tasks}")
-    print(f"Voltooide taken: {completed}")
+    print(f"Totaal aantal taken : {total}")
+    print(f"Openstaande taken  : {open_tasks}")
+    print(f"Voltooide taken    : {completed}")
